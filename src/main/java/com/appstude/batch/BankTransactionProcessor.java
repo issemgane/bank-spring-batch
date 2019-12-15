@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
 
-@Component
+//@Component
 public class BankTransactionProcessor implements ItemProcessor<BankTransaction, BankTransaction> {
     private SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy-HH:mm");
     @Override

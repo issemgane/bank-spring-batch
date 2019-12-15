@@ -3,6 +3,7 @@ package com.appstude.web;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.appstude.batch.BankTransactionAnalyticsProcessor;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
@@ -15,13 +16,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/load")
-public class LoadController {
+public class LoadDataController {
 	
 	@Autowired
 	JobLauncher jobLauncher;
 	
 	@Autowired
 	Job job;
+
+	@Autowired
+	BankTransactionAnalyticsProcessor bankTransactionAnalyticsProcessor;
 	
 	@GetMapping("/data")
 	public BatchStatus  loadBatch() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
@@ -43,6 +47,15 @@ public class LoadController {
 
         return jobExecution.getStatus();
 		
+	}
+
+	@GetMapping("/analytics")
+	public Map<String,Double>  analytics(){
+		Map<String,Double> data = new HashMap<>();
+		data.put("TotalDebit",bankTransactionAnalyticsProcessor.getTotalDebit());
+		data.put("TotalCredit",bankTransactionAnalyticsProcessor.getTotalCredit());
+
+		return data;
 	}
 
 }

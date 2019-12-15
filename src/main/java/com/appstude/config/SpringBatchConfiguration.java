@@ -1,4 +1,6 @@
 package com.appstude.config;
+import com.appstude.batch.BankTransactionAnalyticsProcessor;
+import com.appstude.batch.BankTransactionProcessor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemProcessor;
@@ -8,6 +10,8 @@ import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.support.CompositeItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -21,19 +25,30 @@ import org.springframework.core.io.Resource;
 
 import com.appstude.model.BankTransaction;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Configuration
 @EnableBatchProcessing
 public class SpringBatchConfiguration {
 
-	@Bean
-	public Job bankJob(JobBuilderFactory jobBuilderFactory,StepBuilderFactory stepBuilderFactory,ItemReader<BankTransaction> itemReader,
-			      ItemProcessor<BankTransaction,BankTransaction> itemProcessor,ItemWriter<BankTransaction> itemWriter) {
-		
+	@Autowired
+	private JobBuilderFactory jobBuilderFactory;
+	@Autowired
+	private StepBuilderFactory stepBuilderFactory;
+	@Autowired
+    private ItemReader<BankTransaction> itemReader;
+    //private ItemProcessor<BankTransaction,BankTransaction> itemProcessor;
+	@Autowired
+    private ItemWriter<BankTransaction> itemWriter;
 
-					Step step = stepBuilderFactory.get("ETL-transaction-file-load")
+	@Bean
+	public Job bankJob() {
+			Step step = stepBuilderFactory.get("ETL-transaction-file-load")
 							.<BankTransaction,BankTransaction>chunk(100)
 							.reader(itemReader)
-							.processor(itemProcessor)
+							//.processor(itemProcessor)
+							.processor(compositeItemProcessor())
 							.writer(itemWriter)
 							.build();
 					
@@ -45,8 +60,31 @@ public class SpringBatchConfiguration {
 					.build();
 		
 	}
-	
-	
+
+	@Bean
+	 public ItemProcessor<BankTransaction,BankTransaction> compositeItemProcessor(){
+		List<ItemProcessor<BankTransaction,BankTransaction>> itemProcessorsList = new ArrayList<>();
+		itemProcessorsList.add(getBankTransactionItemProcessor());
+		itemProcessorsList.add(getBantTransactionAnalyticsProcessor());
+
+		CompositeItemProcessor<BankTransaction,BankTransaction> compositeItemProcessor =
+				new CompositeItemProcessor<>();
+
+		compositeItemProcessor.setDelegates(itemProcessorsList);
+
+		return compositeItemProcessor;
+	}
+
+	@Bean
+	 BankTransactionProcessor getBankTransactionItemProcessor(){
+       return new BankTransactionProcessor();
+	}
+
+	@Bean
+	 BankTransactionAnalyticsProcessor getBantTransactionAnalyticsProcessor(){
+		return new BankTransactionAnalyticsProcessor();
+	}
+
     @Bean
 	public FlatFileItemReader<BankTransaction> itemReader(@Value("${filePath}")Resource resource) {
 		
